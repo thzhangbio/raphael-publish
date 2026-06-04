@@ -32,6 +32,11 @@ async function getBase64Image(imgUrl: string): Promise<string> {
     }
 }
 
+function appendImportantStyle(currentStyle: string, declaration: string): string {
+    const separator = currentStyle.trim() && !currentStyle.trim().endsWith(';') ? '; ' : ' ';
+    return `${currentStyle}${separator}${declaration}`.trim();
+}
+
 export async function makeWeChatCompatible(html: string, themeId: string): Promise<string> {
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');
@@ -67,6 +72,19 @@ export async function makeWeChatCompatible(html: string, themeId: string): Promi
             section.appendChild(node);
         }
     });
+
+    // WeChat keeps root padding and first-block margins as undeletable blank space
+    // after paste, so neutralize only the top edge while preserving theme styles.
+    section.setAttribute('style', appendImportantStyle(section.getAttribute('style') || '', 'padding-top: 0 !important;'));
+    const firstVisibleBlock = Array.from(section.children).find(child =>
+        ['H1', 'P', 'BLOCKQUOTE', 'TABLE', 'IMG', 'PRE'].includes(child.tagName)
+    );
+    if (firstVisibleBlock) {
+        firstVisibleBlock.setAttribute(
+            'style',
+            appendImportantStyle(firstVisibleBlock.getAttribute('style') || '', 'margin-top: 0 !important;')
+        );
+    }
 
     // 2. WeChat ignores flex in many scenarios. Convert image flex wrappers to table layout.
     const flexLikeNodes = section.querySelectorAll('div, p.image-grid');
