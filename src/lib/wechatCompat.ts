@@ -37,14 +37,21 @@ function appendImportantStyle(currentStyle: string, declaration: string): string
     return `${currentStyle}${separator}${declaration}`.trim();
 }
 
-function zeroPaddingTopInStyle(style: string): string {
-    return style.replace(/padding:\s*([^;]+);?/gi, (_match, paddingValue: string) => {
-        const cleanValue = paddingValue.replace(/\s*!important\s*/gi, '').trim();
+function zeroBoxSpacingInStyle(style: string, property: 'margin' | 'padding', edges: { top?: boolean; right?: boolean; bottom?: boolean; left?: boolean }): string {
+    return style.replace(new RegExp(`${property}:\\s*([^;]+);?`, 'gi'), (_match, spacingValue: string) => {
+        const cleanValue = spacingValue.replace(/\s*!important\s*/gi, '').trim();
         const parts = cleanValue.split(/\s+/);
-        if (parts.length === 0) return 'padding: 0 !important;';
+        if (parts.length === 0) return `${property}: 0 !important;`;
 
-        const [, right = parts[0], bottom = parts[0], left = right] = parts;
-        return `padding: 0 ${right} ${bottom} ${left} !important;`;
+        let top = parts[0];
+        let rightValue = parts[1] || top;
+        let bottom = parts[2] || top;
+        let leftValue = parts[3] || rightValue;
+        if (edges.top) top = '0';
+        if (edges.right) rightValue = '0';
+        if (edges.bottom) bottom = '0';
+        if (edges.left) leftValue = '0';
+        return `${property}: ${top} ${rightValue} ${bottom} ${leftValue} !important;`;
     });
 }
 
@@ -89,18 +96,37 @@ export async function makeWeChatCompatible(html: string, themeId: string): Promi
         }
     });
 
-    // WeChat keeps root padding and first-block margins as undeletable blank space
-    // after paste, so neutralize only the top edge while preserving theme styles.
-    let sectionStyle = zeroPaddingTopInStyle(section.getAttribute('style') || '');
+    // WeChat already has its own editor inset, while pasted root padding becomes
+    // visible indentation/blank space, so neutralize container padding only here.
+    let sectionStyle = zeroBoxSpacingInStyle(section.getAttribute('style') || '', 'padding', { top: true, right: true, bottom: true, left: true });
     sectionStyle = appendImportantStyle(sectionStyle, 'padding-top: 0 !important;');
+    sectionStyle = appendImportantStyle(sectionStyle, 'padding-right: 0 !important;');
+    sectionStyle = appendImportantStyle(sectionStyle, 'padding-bottom: 0 !important;');
+    sectionStyle = appendImportantStyle(sectionStyle, 'padding-left: 0 !important;');
     sectionStyle = appendImportantStyle(sectionStyle, 'margin-top: 0 !important;');
+    sectionStyle = appendImportantStyle(sectionStyle, 'margin-bottom: 0 !important;');
     section.setAttribute('style', sectionStyle);
 
-    const firstVisibleBlock = Array.from(section.querySelectorAll('h1, h2, h3, h4, h5, h6, p, blockquote, table, img, pre, ul, ol')).find(isVisibleContentElement);
+    const visibleBlocks = Array.from(section.querySelectorAll('h1, h2, h3, h4, h5, h6, p, blockquote, table, img, pre, ul, ol')).filter(isVisibleContentElement);
+    const firstVisibleBlock = visibleBlocks[0];
     if (firstVisibleBlock) {
         firstVisibleBlock.setAttribute(
             'style',
-            appendImportantStyle(firstVisibleBlock.getAttribute('style') || '', 'margin-top: 0 !important;')
+            appendImportantStyle(
+                zeroBoxSpacingInStyle(firstVisibleBlock.getAttribute('style') || '', 'margin', { top: true }),
+                'margin-top: 0 !important;'
+            )
+        );
+    }
+
+    const lastVisibleBlock = visibleBlocks[visibleBlocks.length - 1];
+    if (lastVisibleBlock) {
+        lastVisibleBlock.setAttribute(
+            'style',
+            appendImportantStyle(
+                zeroBoxSpacingInStyle(lastVisibleBlock.getAttribute('style') || '', 'margin', { bottom: true }),
+                'margin-bottom: 0 !important;'
+            )
         );
     }
 
