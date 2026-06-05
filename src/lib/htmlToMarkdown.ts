@@ -1,5 +1,5 @@
 import TurndownService from 'turndown';
-// @ts-ignore
+// @ts-expect-error turndown-plugin-gfm does not expose complete ESM typings.
 import { gfm } from 'turndown-plugin-gfm';
 
 const turndownService = new TurndownService({
@@ -17,10 +17,11 @@ turndownService.use(gfm);
 // Rule to optimize images
 turndownService.addRule('image', {
     filter: 'img',
-    replacement: (_content, node: any) => {
-        const alt = node.alt || '图片';
-        const src = (node.getAttribute?.('src') || node.src || '').trim();
-        const title = (node.title || '').replace(/"/g, '\\"');
+    replacement: (_content, node) => {
+        const imageNode = node as HTMLImageElement;
+        const alt = imageNode.alt || '图片';
+        const src = (imageNode.getAttribute('src') || imageNode.src || '').trim();
+        const title = (imageNode.title || '').replace(/"/g, '\\"');
 
         if (!src) return '';
 
@@ -66,7 +67,7 @@ function isMarkdown(text: string): boolean {
         /\*[^*\n]+\*/,
         /\[[^\]]+\]\([^)]+\)/,
         /!\[[^\]]*\]\([^)]+\)/,
-        /^[\*\-\+]\s+/m,
+        /^[-*+]\s+/m,
         /^\d+\.\s+/m,
         /^>\s+/m,
         /`[^`]+`/,

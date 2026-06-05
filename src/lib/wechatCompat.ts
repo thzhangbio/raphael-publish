@@ -27,7 +27,7 @@ async function getBase64Image(imgUrl: string): Promise<string> {
             reader.onerror = () => resolve(imgUrl);
             reader.readAsDataURL(blob);
         });
-    } catch (e) {
+    } catch {
         return imgUrl;
     }
 }
@@ -35,6 +35,22 @@ async function getBase64Image(imgUrl: string): Promise<string> {
 function appendImportantStyle(currentStyle: string, declaration: string): string {
     const separator = currentStyle.trim() && !currentStyle.trim().endsWith(';') ? '; ' : ' ';
     return `${currentStyle}${separator}${declaration}`.trim();
+}
+
+function zeroPaddingTopInStyle(style: string): string {
+    return style.replace(/padding:\s*([^;]+);?/gi, (_match, paddingValue: string) => {
+        const cleanValue = paddingValue.replace(/\s*!important\s*/gi, '').trim();
+        const parts = cleanValue.split(/\s+/);
+        if (parts.length === 0) return 'padding: 0 !important;';
+
+        const [, right = parts[0], bottom = parts[0], left = right] = parts;
+        return `padding: 0 ${right} ${bottom} ${left} !important;`;
+    });
+}
+
+function isVisibleContentElement(element: Element): boolean {
+    if (['IMG', 'TABLE', 'PRE'].includes(element.tagName)) return true;
+    return Boolean((element.textContent || '').trim());
 }
 
 export async function makeWeChatCompatible(html: string, themeId: string): Promise<string> {
@@ -75,10 +91,12 @@ export async function makeWeChatCompatible(html: string, themeId: string): Promi
 
     // WeChat keeps root padding and first-block margins as undeletable blank space
     // after paste, so neutralize only the top edge while preserving theme styles.
-    section.setAttribute('style', appendImportantStyle(section.getAttribute('style') || '', 'padding-top: 0 !important;'));
-    const firstVisibleBlock = Array.from(section.children).find(child =>
-        ['H1', 'P', 'BLOCKQUOTE', 'TABLE', 'IMG', 'PRE'].includes(child.tagName)
-    );
+    let sectionStyle = zeroPaddingTopInStyle(section.getAttribute('style') || '');
+    sectionStyle = appendImportantStyle(sectionStyle, 'padding-top: 0 !important;');
+    sectionStyle = appendImportantStyle(sectionStyle, 'margin-top: 0 !important;');
+    section.setAttribute('style', sectionStyle);
+
+    const firstVisibleBlock = Array.from(section.querySelectorAll('h1, h2, h3, h4, h5, h6, p, blockquote, table, img, pre, ul, ol')).find(isVisibleContentElement);
     if (firstVisibleBlock) {
         firstVisibleBlock.setAttribute(
             'style',
