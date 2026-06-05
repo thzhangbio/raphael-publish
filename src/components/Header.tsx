@@ -24,7 +24,7 @@ export default function Header({ themeMode, onToggleTheme }: HeaderProps) {
                 <motion.a
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    href="https://github.com/liuxiaopai-ai/raphael-publish"
+                    href="https://github.com/thzhangbio/raphael-publish"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors"

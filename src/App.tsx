@@ -21,6 +21,8 @@ export default function App() {
     const [activeTheme, setActiveTheme] = useState(THEMES[0].id);
     const [copied, setCopied] = useState(false);
     const [isCopying, setIsCopying] = useState(false);
+    const [copiedSourceHtml, setCopiedSourceHtml] = useState('');
+    const [showCopiedSource, setShowCopiedSource] = useState(false);
     const [previewDevice, setPreviewDevice] = useState<'mobile' | 'tablet' | 'pc'>('pc');
     const [activePanel, setActivePanel] = useState<'editor' | 'preview'>('editor');
     const [scrollSyncEnabled, setScrollSyncEnabled] = useState(true);
@@ -146,6 +148,7 @@ export default function App() {
         setIsCopying(true);
         try {
             const finalHtmlForCopy = await makeWeChatCompatible(renderedHtml, activeTheme);
+            setCopiedSourceHtml(finalHtmlForCopy);
 
             const blob = new Blob([finalHtmlForCopy], { type: 'text/html' });
             const textBlob = new Blob([previewRef.current.innerText], { type: 'text/plain' });
@@ -285,8 +288,10 @@ export default function App() {
                     onExportPdf={handleExportPdf}
                     onExportHtml={handleExportHtml}
                     onCopy={handleCopy}
+                    onViewCopiedSource={() => setShowCopiedSource(true)}
                     copied={copied}
                     isCopying={isCopying}
+                    hasCopiedSource={Boolean(copiedSourceHtml)}
                     scrollSyncEnabled={scrollSyncEnabled}
                     onToggleScrollSync={() => setScrollSyncEnabled((prev) => !prev)}
                 />
@@ -303,8 +308,10 @@ export default function App() {
                     onExportPdf={handleExportPdf}
                     onExportHtml={handleExportHtml}
                     onCopy={handleCopy}
+                    onViewCopiedSource={() => setShowCopiedSource(true)}
                     copied={copied}
                     isCopying={isCopying}
+                    hasCopiedSource={Boolean(copiedSourceHtml)}
                     scrollSyncEnabled={scrollSyncEnabled}
                     onToggleScrollSync={() => setScrollSyncEnabled((prev) => !prev)}
                 />
@@ -336,6 +343,27 @@ export default function App() {
                     />
                 </div>
             </main>
+
+            {showCopiedSource && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 p-4">
+                    <div className="flex max-h-[82vh] w-full max-w-5xl flex-col overflow-hidden rounded-[12px] bg-white shadow-apple-lg dark:bg-[#1c1c1e]">
+                        <div className="flex items-center justify-between border-b border-[#00000010] px-4 py-3 dark:border-[#ffffff14]">
+                            <h2 className="text-sm font-semibold text-black dark:text-white">复制打包后的源代码</h2>
+                            <button
+                                onClick={() => setShowCopiedSource(false)}
+                                className="rounded-full px-3 py-1 text-sm text-[#86868b] hover:bg-black/5 dark:hover:bg-white/10"
+                            >
+                                关闭
+                            </button>
+                        </div>
+                        <textarea
+                            readOnly
+                            value={copiedSourceHtml}
+                            className="h-[65vh] w-full resize-none bg-[#f5f5f7] p-4 font-mono text-xs leading-5 text-[#1d1d1f] outline-none dark:bg-black dark:text-[#f5f5f7]"
+                        />
+                    </div>
+                </div>
+            )}
 
         </div>
     );

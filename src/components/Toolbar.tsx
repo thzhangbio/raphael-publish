@@ -1,4 +1,4 @@
-import { Copy, CheckCircle2, Download, Smartphone, Tablet, Monitor, Loader2, Link2, Unlink2 } from 'lucide-react';
+import { Copy, CheckCircle2, Download, Smartphone, Tablet, Monitor, Loader2, Link2, Unlink2, Code2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface ToolbarProps {
@@ -7,13 +7,15 @@ interface ToolbarProps {
     onExportPdf: () => void;
     onExportHtml: () => void;
     onCopy: () => void;
+    onViewCopiedSource: () => void;
     copied: boolean;
     isCopying: boolean;
+    hasCopiedSource: boolean;
     scrollSyncEnabled: boolean;
     onToggleScrollSync: () => void;
 }
 
-export default function Toolbar({ previewDevice, onDeviceChange, onExportPdf, onExportHtml, onCopy, copied, isCopying, scrollSyncEnabled, onToggleScrollSync }: ToolbarProps) {
+export default function Toolbar({ previewDevice, onDeviceChange, onExportPdf, onExportHtml, onCopy, onViewCopiedSource, copied, isCopying, hasCopiedSource, scrollSyncEnabled, onToggleScrollSync }: ToolbarProps) {
     return (
         <div className="flex items-center justify-between px-4 sm:px-6 py-3 max-w-[1024px]">
             <div className="hidden md:flex bg-[#00000008] dark:bg-[#ffffff10] p-1 rounded-full backdrop-blur-md">
@@ -91,6 +93,20 @@ export default function Toolbar({ previewDevice, onDeviceChange, onExportPdf, on
                     <span className="hidden sm:inline">{copied ? '已复制！请贴往公众号' : isCopying ? '正在打包图片...' : '复制到公众号'}</span>
                     <span className="sm:hidden">{copied ? '已复制' : isCopying ? '打包中...' : '复制'}</span>
                 </motion.button>
+
+                {hasCopiedSource && (
+                    <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.96 }}
+                        data-testid="view-copied-source"
+                        onClick={onViewCopiedSource}
+                        className="apple-export-btn !bg-[#00000008] dark:!bg-[#ffffff10] border-transparent"
+                    >
+                        <Code2 size={14} />
+                        <span className="hidden sm:inline">查看复制打包的源代码</span>
+                        <span className="sm:hidden">看源码</span>
+                    </motion.button>
+                )}
             </div>
         </div>
     );
