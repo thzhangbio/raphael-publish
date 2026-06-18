@@ -60,6 +60,38 @@ function isVisibleContentElement(element: Element): boolean {
     return Boolean((element.textContent || '').trim());
 }
 
+function isMacTrafficLightBar(element: Element): boolean {
+    if (element.tagName !== 'DIV') return false;
+    if (element.parentElement?.tagName !== 'PRE') return false;
+
+    const children = Array.from(element.children);
+    if (children.length !== 3 || !children.every(child => child.tagName === 'SPAN')) return false;
+
+    const wrapperStyle = element.getAttribute('style') || '';
+    const looksLikeToolbarSpacing = /margin-bottom\s*:\s*12px/i.test(wrapperStyle);
+    const looksLikeTrafficLights = children.every(child => {
+        const style = child.getAttribute('style') || '';
+        return (
+            /display\s*:\s*inline-block/i.test(style) &&
+            /width\s*:\s*12px/i.test(style) &&
+            /height\s*:\s*12px/i.test(style) &&
+            /border-radius\s*:\s*50%/i.test(style) &&
+            /background\s*:\s*#(?:ff5f56|ffbd2e|27c93f)/i.test(style)
+        );
+    });
+
+    return looksLikeToolbarSpacing && looksLikeTrafficLights;
+}
+
+function removeUnsupportedCodeChrome(section: HTMLElement): void {
+    section.querySelectorAll('pre').forEach(pre => {
+        const firstElementChild = Array.from(pre.children)[0];
+        if (firstElementChild && isMacTrafficLightBar(firstElementChild)) {
+            firstElementChild.remove();
+        }
+    });
+}
+
 export async function makeWeChatCompatible(html: string, themeId: string): Promise<string> {
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');
@@ -129,6 +161,11 @@ export async function makeWeChatCompatible(html: string, themeId: string): Promi
             )
         );
     }
+
+    // WeChat often strips the small traffic-light spans in Mac-style code blocks
+    // but leaves their wrapper spacing behind. Remove that decoration for pasted
+    // HTML so code starts at the expected position instead of showing a blank bar.
+    removeUnsupportedCodeChrome(section);
 
     // 2. WeChat ignores flex in many scenarios. Convert image flex wrappers to table layout.
     const flexLikeNodes = section.querySelectorAll('div, p.image-grid');

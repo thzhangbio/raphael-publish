@@ -42,4 +42,15 @@ describe('makeWeChatCompatible', () => {
         expect(paragraph?.getAttribute('style')).toContain('margin-top: 0 !important;');
         expect(paragraph?.getAttribute('style')).toContain('margin-bottom: 0 !important;');
     });
+
+    it('removes Mac-style code block traffic lights before pasting to WeChat', async () => {
+        const html = '<div><pre style="margin: 24px 0; padding: 20px;"><div style="margin-bottom: 12px; white-space: nowrap;"><span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: #ff5f56; margin-right: 6px;"></span><span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: #ffbd2e; margin-right: 6px;"></span><span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: #27c93f;"></span></div><code class="hljs">A549 spheroid 96-well cells per well</code></pre></div>';
+        const compatible = await makeWeChatCompatible(html, 'apple');
+        const doc = new DOMParser().parseFromString(compatible, 'text/html');
+        const pre = doc.querySelector('pre');
+
+        expect(pre?.querySelector('div')).toBeNull();
+        expect(pre?.querySelectorAll('span')).toHaveLength(0);
+        expect(pre?.textContent).toContain('A549 spheroid 96-well cells per well');
+    });
 });
